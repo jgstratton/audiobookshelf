@@ -1,0 +1,47 @@
+# Example environment variables for S3 cloud storage configuration
+# Add these to your docker-compose.yml or .env file
+
+# Enable cloud storage caching
+ABS_CLOUD_STORAGE_ENABLED=true
+
+# Storage provider: currently only 's3' is supported
+ABS_CLOUD_STORAGE_PROVIDER=s3
+
+# Installation:
+# npm install @aws-sdk/client-s3 @aws-sdk/lib-storage
+
+# Local cache path (used for all providers as temporary cache)
+ABS_CLOUD_STORAGE_CACHE_PATH=/metadata/cache
+
+# === S3 Configuration ===
+ABS_S3_REGION=us-east-1
+ABS_S3_BUCKET=audiobookshelf-cache
+ABS_S3_ACCESS_KEY=your-access-key-here
+ABS_S3_SECRET_KEY=your-secret-key-here
+# Optional: for S3-compatible services like MinIO, DigitalOcean Spaces, etc.
+# ABS_S3_ENDPOINT=https://nyc3.digitaloceanspaces.com
+
+# === Google Cloud Storage Configuration ===
+# ABS_GCS_BUCKET=audiobookshelf-cache
+# ABS_GCS_PROJECT_ID=your-project-id
+# ABS_GCS_KEY_FILE=/config/gcs-service-account.json
+
+# === Azure Blob Storage Configuration ===
+# ABS_AZURE_ACCOUNT=yourstorageaccount
+# ABS_AZURE_KEY=your-storage-key-here
+# ABS_AZURE_CONTAINER=audiobookshelf-cache
+
+# Example docker-compose.yml snippet:
+# services:
+#   audiobookshelf:
+#     image: ghcr.io/advplyr/audiobookshelf:latest
+#     environment:
+#       - ABS_CLOUD_STORAGE_ENABLED=true
+#       - ABS_S3_REGION=us-east-1
+#       - ABS_S3_BUCKET=audiobookshelf-cache
+#       - ABS_S3_ACCESS_KEY=${AWS_ACCESS_KEY_ID}
+#       - ABS_S3_SECRET_KEY=${AWS_SECRET_ACCESS_KEY}
+#     volumes:
+#       - ./config:/config
+#       - ./metadata:/metadata
+#       - ./audiobooks:/audiobooks

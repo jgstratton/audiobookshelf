@@ -37,6 +37,7 @@ const RssFeedManager = require('./managers/RssFeedManager')
 const CronManager = require('./managers/CronManager')
 const ApiCacheManager = require('./managers/ApiCacheManager')
 const BinaryManager = require('./managers/BinaryManager')
+const StorageManager = require('./managers/StorageManager')
 const ShareManager = require('./managers/ShareManager')
 const LibraryScanner = require('./scanner/LibraryScanner')
 
@@ -168,6 +169,7 @@ class Server {
     await ShareManager.init()
     await this.backupManager.init()
     await RssFeedManager.init()
+    await StorageManager.init()
 
     const libraries = await Database.libraryModel.getAllWithFolders()
     await this.cronManager.init(libraries)

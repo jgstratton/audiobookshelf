@@ -33,6 +33,15 @@ class ServerSettings {
     this.backupsToKeep = 2
     this.maxBackupSize = 1
 
+    // Cloud Storage Cache
+    this.cloudStorageEnabled = false
+
+    // S3 Configuration
+    this.cloudStorageS3Region = null
+    this.cloudStorageS3Bucket = null
+    this.cloudStorageS3AccessKey = null
+    this.cloudStorageS3SecretKey = null
+
     // Logger
     this.loggerDailyLogsToKeep = 7
     this.loggerScannerLogsToKeep = 2
@@ -108,6 +117,15 @@ class ServerSettings {
     this.backupSchedule = settings.backupSchedule || false
     this.backupsToKeep = settings.backupsToKeep || 2
     this.maxBackupSize = settings.maxBackupSize === 0 ? 0 : settings.maxBackupSize || 1
+
+    // Cloud Storage settings with environment variable fallbacks
+    this.cloudStorageEnabled = settings.cloudStorageEnabled !== undefined ? !!settings.cloudStorageEnabled : !!process.env.ABS_CLOUD_STORAGE_ENABLED
+
+    // S3 Configuration
+    this.cloudStorageS3Region = settings.cloudStorageS3Region || process.env.ABS_S3_REGION || null
+    this.cloudStorageS3Bucket = settings.cloudStorageS3Bucket || process.env.ABS_S3_BUCKET || null
+    this.cloudStorageS3AccessKey = settings.cloudStorageS3AccessKey || process.env.ABS_S3_ACCESS_KEY || null
+    this.cloudStorageS3SecretKey = settings.cloudStorageS3SecretKey || process.env.ABS_S3_SECRET_KEY || null
 
     this.loggerDailyLogsToKeep = settings.loggerDailyLogsToKeep || 7
     this.loggerScannerLogsToKeep = settings.loggerScannerLogsToKeep || 2
@@ -222,6 +240,11 @@ class ServerSettings {
       backupSchedule: this.backupSchedule,
       backupsToKeep: this.backupsToKeep,
       maxBackupSize: this.maxBackupSize,
+      cloudStorageEnabled: this.cloudStorageEnabled,
+      cloudStorageS3Region: this.cloudStorageS3Region,
+      cloudStorageS3Bucket: this.cloudStorageS3Bucket,
+      cloudStorageS3AccessKey: this.cloudStorageS3AccessKey,
+      cloudStorageS3SecretKey: this.cloudStorageS3SecretKey,
       loggerDailyLogsToKeep: this.loggerDailyLogsToKeep,
       loggerScannerLogsToKeep: this.loggerScannerLogsToKeep,
       homeBookshelfView: this.homeBookshelfView,
@@ -267,6 +290,9 @@ class ServerSettings {
     delete json.authOpenIDMobileRedirectURIs
     delete json.authOpenIDGroupClaim
     delete json.authOpenIDAdvancedPermsClaim
+    // Remove cloud storage secrets from browser response
+    delete json.cloudStorageS3AccessKey
+    delete json.cloudStorageS3SecretKey
     return json
   }
 

@@ -18,6 +18,7 @@ const RssFeedManager = require('../managers/RssFeedManager')
 const CacheManager = require('../managers/CacheManager')
 const CoverManager = require('../managers/CoverManager')
 const ShareManager = require('../managers/ShareManager')
+const StorageManager = require('../managers/StorageManager')
 
 /**
  * @typedef RequestUserObject
@@ -156,6 +157,22 @@ class LibraryItemController {
     const itemTitle = req.libraryItem.media.title
 
     Logger.info(`[LibraryItemController] User "${req.user.username}" requested download for item "${itemTitle}" at "${libraryItemPath}"`)
+
+    // If there's only one item, check S3 storage first
+    const itemId = req.libraryItem.id;
+    
+    try {
+      // Check if the item exists in S3 storage
+      const signedUrl = await StorageManager.getSignedUrlForZipFile(itemId)
+      if (signedUrl) {
+        Logger.info(`[LibraryController] User "${req.user.username}" downloading item "${itemId}" from S3 storage`)
+        return res.redirect(signedUrl)
+      }
+    } catch (error) {
+      Logger.debug(`[LibraryController] S3 storage check failed for item "${itemId}":`, error.message)
+      // Continue with local file download if S3 fails
+    }
+    
 
     try {
       // If library item is a single file in root dir then no need to zip
