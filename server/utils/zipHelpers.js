@@ -135,3 +135,46 @@ module.exports.handleDownloadError = (error, res) => {
     }
   }
 }
+
+/**
+ * Creates a zip archive stream from a directory without piping to a response.
+ * Useful for uploading to cloud storage or other non-HTTP destinations.
+ *
+ * @param {string} path - Path to the directory to zip
+ * @returns {import('stream').Readable} - Readable stream of the zip archive
+ */
+module.exports.zipDirectoryToStream = (path) => {
+  const { PassThrough } = require('stream')
+  const zipStream = new PassThrough()
+
+  const archive = archiver('zip', {
+    zlib: { level: 0 } // No compression for faster processing
+  })
+
+  // Handle archive warnings
+  archive.on('warning', function (err) {
+    if (err.code === 'ENOENT') {
+      Logger.warn(`[ZipHelper] Archiver warning: ${err.message}`)
+    } else {
+      Logger.error(`[ZipHelper] Archiver error: ${err.message}`)
+      zipStream.destroy(err)
+    }
+  })
+
+  // Handle archive errors
+  archive.on('error', function (err) {
+    Logger.error(`[ZipHelper] Archiver error: ${err.message}`)
+    zipStream.destroy(err)
+  })
+
+  // Pipe archive data to the passthrough stream
+  archive.pipe(zipStream)
+
+  // Add directory to archive
+  archive.directory(path, false)
+
+  // Finalize the archive
+  archive.finalize()
+
+  return zipStream
+}

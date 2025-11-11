@@ -128,6 +128,7 @@ class User extends Model {
     canUpload: 'upload',
     canDelete: 'delete',
     canUpdate: 'update',
+    canSaveToCloud: 'saveToCloud',
     canAccessExplicitContent: 'accessExplicitContent',
     canAccessAllLibraries: 'accessAllLibraries',
     canAccessAllTags: 'accessAllTags',
@@ -172,6 +173,7 @@ class User extends Model {
       update: type === 'root' || type === 'admin',
       delete: type === 'root',
       upload: type === 'root' || type === 'admin',
+      saveToCloud: type === 'root' || type === 'admin',
       createEreader: type === 'root' || type === 'admin',
       accessAllLibraries: true,
       accessAllTags: true,
@@ -570,6 +572,10 @@ class User extends Model {
   get canUpload() {
     return !!this.permissions?.upload && this.isActive
   }
+  get canSaveToCloud() {
+    return !!this.permissions?.saveToCloud && this.isActive
+  }
+
   /** @type {string|null} */
   get authOpenIDSub() {
     return this.extraData?.authOpenIDSub || null

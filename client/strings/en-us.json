@@ -562,6 +562,7 @@
   "LabelRemoveMetadataFile": "Remove metadata files in library item folders",
   "LabelRemoveMetadataFileHelp": "Remove all metadata.json and metadata.abs files in your {0} folders.",
   "LabelRowsPerPage": "Rows per page",
+  "LabelSaveToCloud": "Save to cloud",
   "LabelSearchTerm": "Search Term",
   "LabelSearchTitle": "Search Title",
   "LabelSearchTitleOrASIN": "Search Title or ASIN",

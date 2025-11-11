@@ -158,25 +158,13 @@ class LibraryItemController {
 
     Logger.info(`[LibraryItemController] User "${req.user.username}" requested download for item "${itemTitle}" at "${libraryItemPath}"`)
 
-    // If there's only one item, check S3 storage first
-    const itemId = req.libraryItem.id;
-    
-    try {
-      // Check if the item exists in S3 storage
-      const signedUrl = await StorageManager.getSignedUrlForZipFile(itemId)
-      if (signedUrl) {
-        Logger.info(`[LibraryController] User "${req.user.username}" downloading item "${itemId}" from S3 storage`)
-        return res.redirect(signedUrl)
-      }
-    } catch (error) {
-      Logger.debug(`[LibraryController] S3 storage check failed for item "${itemId}":`, error.message)
-      // Continue with local file download if S3 fails
-    }
-    
-
     try {
       // If library item is a single file in root dir then no need to zip
       if (req.libraryItem.isFile) {
+        const signedUrl = await StorageManager.getSignedUrlForFile(Path.basename(libraryItemPath))
+        if (signedUrl) {
+          return res.redirect(signedUrl)
+        }
         // Express does not set the correct mimetype for m4b files so use our defined mimetypes if available
         const audioMimeType = getAudioMimeTypeFromExtname(Path.extname(libraryItemPath))
         if (audioMimeType) {
@@ -185,12 +173,79 @@ class LibraryItemController {
         await new Promise((resolve, reject) => res.download(libraryItemPath, req.libraryItem.relPath, (error) => (error ? reject(error) : resolve())))
       } else {
         const filename = `${itemTitle}.zip`
+        const signedUrl = await StorageManager.getSignedUrlForFile(filename)
+        if (signedUrl) {
+          return res.redirect(signedUrl)
+        }
         await zipHelpers.zipDirectoryPipe(libraryItemPath, filename, res)
       }
       Logger.info(`[LibraryItemController] Downloaded item "${itemTitle}" at "${libraryItemPath}"`)
     } catch (error) {
       Logger.error(`[LibraryItemController] Download failed for item "${itemTitle}" at "${libraryItemPath}"`, error)
       LibraryItemController.handleDownloadError(error, res)
+    }
+  }
+
+  /**
+   * GET: /api/items/:id/saveToCloud
+   * Send library item to cloud
+   *
+   * @param {LibraryItemControllerRequest} req
+   * @param {Response} res
+   */
+  async saveToCloud(req, res) {
+    if (!req.user.canSaveToCloud) {
+      Logger.warn(`User "${req.user.username}" attempted to save to cloud without permission`)
+      return res.sendStatus(403)
+    }
+    const libraryItemPath = req.libraryItem.path
+    const itemTitle = req.libraryItem.media.title
+
+    Logger.info(`[LibraryItemController] User "${req.user.username}" requested cloud save for item "${itemTitle}" at "${libraryItemPath}"`)
+
+    try {
+      // If library item is a single file in root dir then no need to zip
+      if (req.libraryItem.isFile) {
+        const fileName = Path.basename(libraryItemPath)
+        Logger.info(`[LibraryItemController] Uploading single file "${fileName}" to cloud storage`)
+        
+        // Read the file as a stream
+        const fileStream = fs.createReadStream(libraryItemPath)
+        
+        // Upload to S3 using StorageManager
+        await StorageManager.cacheFile(fileName, fileStream)
+        
+        Logger.info(`[LibraryItemController] Successfully saved single file "${fileName}" to cloud`)
+        return res.json({
+          success: true,
+          message: 'File saved to cloud successfully',
+          fileName: fileName
+        })
+      } else {
+        // For directories, create a zip and upload
+        Logger.info(`[LibraryItemController] Creating zip archive for directory and uploading to cloud`)
+        
+        const zipFileName = `${itemTitle}.zip`
+        
+        // Create zip stream using helper
+        const zipStream = zipHelpers.zipDirectoryToStream(libraryItemPath)
+        
+        // Upload the zip stream to S3
+        await StorageManager.cacheFile(zipFileName, zipStream)
+        
+        Logger.info(`[LibraryItemController] Successfully saved directory as "${zipFileName}" to cloud`)
+        return res.json({
+          success: true,
+          message: 'Directory saved to cloud as zip file successfully',
+          fileName: zipFileName
+        })
+      }
+    } catch (error) {
+      Logger.error(`[LibraryItemController] Save to cloud failed for item "${itemTitle}" at "${libraryItemPath}"`, error)
+      return res.status(500).json({
+        error: 'Save to cloud failed',
+        message: error.message
+      })
     }
   }
 

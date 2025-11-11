@@ -113,6 +113,10 @@
               <ui-icon-btn icon="search" class="mx-0.5" :aria-label="$strings.LabelFindEpisodes" :loading="fetchingRSSFeed" outlined @click="findEpisodesClick" />
             </ui-tooltip>
 
+            <ui-tooltip v-if="userIsAdminOrUp" :text="$strings.LabelSaveToCloud" direction="top">
+              <ui-icon-btn icon="cloud_upload" class="mx-0.5" :aria-label="$strings.LabelSaveToCloud" :loading="savingsToCloud" outlined @click="saveToCloud" />
+            </ui-tooltip>
+
             <ui-context-menu-dropdown v-if="contextMenuItems.length" :items="contextMenuItems" :menu-width="148" @action="contextMenuAction">
               <template #default="{ showMenu, clickShowMenu, disabled }">
                 <button type="button" :disabled="disabled" class="mx-0.5 icon-btn bg-primary border border-gray-600 w-9 h-9 rounded-md flex items-center justify-center relative" aria-haspopup="listbox" :aria-expanded="showMenu" :aria-label="$strings.LabelMore" @click.stop.prevent="clickShowMenu">
@@ -176,6 +180,7 @@ export default {
       resettingProgress: false,
       isProcessingReadUpdate: false,
       fetchingRSSFeed: false,
+      savingsToCloud: false,
       showPodcastEpisodeFeed: false,
       podcastFeedEpisodes: [],
       episodesDownloading: [],
@@ -470,6 +475,7 @@ export default {
           })
       }
     },
+
     async findEpisodesClick() {
       if (!this.mediaMetadata.feedUrl) {
         return this.$toast.error(this.$strings.ToastNoRSSFeed)
@@ -493,6 +499,29 @@ export default {
       this.podcastFeedEpisodes = podcastfeed.episodes
       this.showPodcastEpisodeFeed = true
     },
+
+    async saveToCloud() {
+      if (this.savingsToCloud) return
+
+      this.savingsToCloud = true
+
+      try {
+        const response = await this.$axios.$get(`/api/items/${this.libraryItemId}/saveToCloud`)
+
+        if (response.success) {
+          this.$toast.success(`Successfully saved "${response.fileName}" to cloud storage`)
+        } else {
+          this.$toast.error('Failed to save to cloud')
+        }
+      } catch (error) {
+        console.error('Failed to save to cloud', error)
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to save to cloud'
+        this.$toast.error(errorMessage)
+      } finally {
+        this.savingsToCloud = false
+      }
+    },
+
     showEditCover() {
       this.$store.commit('setBookshelfBookIds', [])
       this.$store.commit('showEditModalOnTab', { libraryItem: this.libraryItem, tab: 'cover' })

@@ -92,20 +92,52 @@ class StorageManager {
     }
   }
 
-  getKey = (itemId) => `audiobooks/${itemId}.zip`
+  /**
+   * Convert a filename to S3-safe format (kebab-case with only alphanumeric characters and dashes)
+   * @param {string} fileName - The original filename
+   * @returns {string} S3-safe filename in kebab-case
+   */
+  s3SafeFileName(fileName) {
+    // Separate the extension from the filename
+    const ext = fileName.lastIndexOf('.') > 0 ? fileName.substring(fileName.lastIndexOf('.')) : ''
+    const nameWithoutExt = ext ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName
+    
+    // Convert to kebab-case:
+    // 1. Replace any non-alphanumeric characters (except spaces) with spaces
+    // 2. Trim leading/trailing spaces
+    // 3. Replace multiple spaces with single space
+    // 4. Convert to lowercase
+    // 5. Replace spaces with dashes
+    const safeName = nameWithoutExt
+      .replace(/[^a-zA-Z0-9\s]/g, ' ')  // Replace non-alphanumeric (except spaces) with spaces
+      .trim()                            // Remove leading/trailing spaces
+      .replace(/\s+/g, ' ')              // Replace multiple spaces with single space
+      .toLowerCase()                     // Convert to lowercase
+      .replace(/\s/g, '-')               // Replace spaces with dashes
+    
+    // Handle the extension
+    const safeExt = ext.toLowerCase().replace(/[^a-z0-9.]/g, '')
+    
+    return safeName + safeExt
+  }
+
+  getKey(fileName) {
+    const safeName = this.s3SafeFileName(fileName)
+    return `audiobooks/${safeName}`
+  }
 
   /**
    * Cache an audiobook file to S3 storage
-   * @param {string} itemId - The audiobook ID
-   * @param {Buffer|Stream} data - The data (zip file)
+   * @param {string} fileName - The filename to use for storage
+   * @param {Buffer|Stream} data - The data (Buffer or Stream)
    * @returns {Promise<string>} The storage key/path
    */
-  async cacheZipFile(itemId, data) {
+  async cacheFile(fileName, data) {
     if (!this.isInitialized) {
       throw new Error('S3 storage not initialized')
     }
 
-    const key = this.getKey(itemId)
+    const key = this.getKey(fileName)
     
     try {
       const { Upload } = require('@aws-sdk/lib-storage')
@@ -144,16 +176,17 @@ class StorageManager {
 
   /**
    * Get a signed URL for direct access to an audiobook in S3 storage
-   * @param {string} itemId - The audiobook ID
+   * @param {string} fileName - The audiobook file name
    * @param {number} [expiresIn=3600] - URL expiration time in seconds (default: 1 hour)
    * @returns {Promise<string|null>} The pre-signed URL or null if not found
    */
-  async getSignedUrlForZipFile(itemId, expiresIn = 3600) {
+  async getSignedUrlForFile(fileName, expiresIn = 3600) {
     if (!this.isInitialized) {
-      throw new Error('S3 storage not initialized')
+      Logger.info(`[StorageManager] S3 storage not initialized.`)
+      return null;
     }
 
-    const key = this.getKey(itemId)
+    const key = this.getKey(fileName)
 
     try {
       // First check if the object exists
@@ -183,7 +216,7 @@ class StorageManager {
         return null
       }
       Logger.error(`[StorageManager] Failed to generate signed URL for audiobook ${itemId}:`, error)
-      throw error
+      return null
     }
   }
 
