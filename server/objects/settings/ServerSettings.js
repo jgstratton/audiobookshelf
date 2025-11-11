@@ -119,13 +119,13 @@ class ServerSettings {
     this.maxBackupSize = settings.maxBackupSize === 0 ? 0 : settings.maxBackupSize || 1
 
     // Cloud Storage settings with environment variable fallbacks
-    this.cloudStorageEnabled = settings.cloudStorageEnabled !== undefined ? !!settings.cloudStorageEnabled : !!process.env.ABS_CLOUD_STORAGE_ENABLED
+    this.cloudStorageEnabled = !!process.env.ABS_CLOUD_STORAGE_ENABLED
 
     // S3 Configuration
-    this.cloudStorageS3Region = settings.cloudStorageS3Region || process.env.ABS_S3_REGION || null
-    this.cloudStorageS3Bucket = settings.cloudStorageS3Bucket || process.env.ABS_S3_BUCKET || null
-    this.cloudStorageS3AccessKey = settings.cloudStorageS3AccessKey || process.env.ABS_S3_ACCESS_KEY || null
-    this.cloudStorageS3SecretKey = settings.cloudStorageS3SecretKey || process.env.ABS_S3_SECRET_KEY || null
+    this.cloudStorageS3Region = process.env.ABS_S3_REGION || null
+    this.cloudStorageS3Bucket = process.env.ABS_S3_BUCKET || null
+    this.cloudStorageS3AccessKey = process.env.ABS_S3_ACCESS_KEY || null
+    this.cloudStorageS3SecretKey = process.env.ABS_S3_SECRET_KEY || null
 
     this.loggerDailyLogsToKeep = settings.loggerDailyLogsToKeep || 7
     this.loggerScannerLogsToKeep = settings.loggerScannerLogsToKeep || 2
