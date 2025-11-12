@@ -14,6 +14,11 @@
     <td v-if="contextMenuItems.length" class="text-center">
       <ui-context-menu-dropdown :items="contextMenuItems" :menu-width="110" @action="contextMenuAction" />
     </td>
+    <td v-if="userIsAdmin" class="text-center">
+      <ui-tooltip :text="$strings.LabelSaveToCloud" direction="top">
+        <ui-icon-btn icon="cloud_upload" class="mx-0.5" :aria-label="$strings.LabelSaveToCloud" :loading="savingsToCloud" outlined @click="saveToCloud" />
+      </ui-tooltip>
+    </td>
   </tr>
 </template>
 
@@ -29,7 +34,7 @@ export default {
     inModal: Boolean
   },
   data() {
-    return {}
+    return { savingsToCloud: false }
   },
   computed: {
     userToken() {
@@ -103,6 +108,27 @@ export default {
     },
     downloadLibraryFile() {
       this.$downloadFile(this.downloadUrl, this.file.metadata.filename)
+    },
+    async saveToCloud() {
+      if (this.savingsToCloud) return
+
+      this.savingsToCloud = true
+
+      try {
+        const response = await this.$axios.$get(`/api/items/${this.libraryItemId}/file/${this.file.ino}/saveToCloud`)
+
+        if (response.success) {
+          this.$toast.success(`Successfully saved "${response.fileName}" to cloud storage`)
+        } else {
+          this.$toast.error('Failed to save to cloud')
+        }
+      } catch (error) {
+        console.error('Failed to save to cloud', error)
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to save to cloud'
+        this.$toast.error(errorMessage)
+      } finally {
+        this.savingsToCloud = false
+      }
     }
   },
   mounted() {}

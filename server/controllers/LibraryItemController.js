@@ -190,7 +190,7 @@ class LibraryItemController {
    * GET: /api/items/:id/saveToCloud
    * Send library item to cloud
    *
-   * @param {LibraryItemControllerRequest} req
+   * @param {LibraryItemControllerRequestWithFile} req
    * @param {Response} res
    */
   async saveToCloud(req, res) {
@@ -198,48 +198,27 @@ class LibraryItemController {
       Logger.warn(`User "${req.user.username}" attempted to save to cloud without permission`)
       return res.sendStatus(403)
     }
-    const libraryItemPath = req.libraryItem.path
+    const libraryFile = req.libraryFile
     const itemTitle = req.libraryItem.media.title
 
-    Logger.info(`[LibraryItemController] User "${req.user.username}" requested cloud save for item "${itemTitle}" at "${libraryItemPath}"`)
+    Logger.info(`[LibraryItemController] User "${req.user.username}" requested to cache item "${req.libraryItem.media.title}" file at "${libraryFile.metadata.path}"`)
 
     try {
-      // If library item is a single file in root dir then no need to zip
-      if (req.libraryItem.isFile) {
-        const fileName = Path.basename(libraryItemPath)
-        Logger.info(`[LibraryItemController] Uploading single file "${fileName}" to cloud storage`)
-        
-        // Read the file as a stream
-        const fileStream = fs.createReadStream(libraryItemPath)
-        
-        // Upload to S3 using StorageManager
-        await StorageManager.cacheFile(fileName, fileStream)
-        
-        Logger.info(`[LibraryItemController] Successfully saved single file "${fileName}" to cloud`)
-        return res.json({
-          success: true,
-          message: 'File saved to cloud successfully',
-          fileName: fileName
-        })
-      } else {
-        // For directories, create a zip and upload
-        Logger.info(`[LibraryItemController] Creating zip archive for directory and uploading to cloud`)
-        
-        const zipFileName = `${itemTitle}.zip`
-        
-        // Create zip stream using helper
-        const zipStream = zipHelpers.zipDirectoryToStream(libraryItemPath)
-        
-        // Upload the zip stream to S3
-        await StorageManager.cacheFile(zipFileName, zipStream)
-        
-        Logger.info(`[LibraryItemController] Successfully saved directory as "${zipFileName}" to cloud`)
-        return res.json({
-          success: true,
-          message: 'Directory saved to cloud as zip file successfully',
-          fileName: zipFileName
-        })
-      }
+      const fileName = libraryFile.metadata.path
+      Logger.info(`[LibraryItemController] Uploading single file "${fileName}" to cloud storage`)
+      
+      // Read the file as a stream
+      const fileStream = fs.createReadStream(libraryFile.metadata.path)
+      
+      // Upload to S3 using StorageManager
+      await StorageManager.cacheFile(fileName, fileStream)
+      
+      Logger.info(`[LibraryItemController] Successfully saved single file "${fileName}" to cloud`)
+      return res.json({
+        success: true,
+        message: 'File saved to cloud successfully',
+        fileName: fileName
+      })
     } catch (error) {
       Logger.error(`[LibraryItemController] Save to cloud failed for item "${itemTitle}" at "${libraryItemPath}"`, error)
       return res.status(500).json({
@@ -1098,6 +1077,11 @@ class LibraryItemController {
     }
 
     Logger.info(`[LibraryItemController] User "${req.user.username}" requested download for item "${req.libraryItem.media.title}" file at "${libraryFile.metadata.path}"`)
+
+    const signedUrl = await StorageManager.getSignedUrlForFile(libraryFile.metadata.path)
+    if (signedUrl) {
+      return res.redirect(signedUrl)
+    }
 
     if (global.XAccel) {
       const encodedURI = encodeUriPath(global.XAccel + libraryFile.metadata.path)

@@ -93,7 +93,7 @@ class StorageManager {
   }
 
   /**
-   * Convert a filename to S3-safe format (kebab-case with only alphanumeric characters and dashes)
+   * Convert a filename to S3-safe format (kebab-case with only alphanumeric characters, dashes, and forward slashes)
    * @param {string} fileName - The original filename
    * @returns {string} S3-safe filename in kebab-case
    */
@@ -103,27 +103,23 @@ class StorageManager {
     const nameWithoutExt = ext ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName
     
     // Convert to kebab-case:
-    // 1. Replace any non-alphanumeric characters (except spaces) with spaces
+    // 1. Replace any non-alphanumeric characters (except spaces and forward slashes) with spaces
     // 2. Trim leading/trailing spaces
     // 3. Replace multiple spaces with single space
     // 4. Convert to lowercase
     // 5. Replace spaces with dashes
     const safeName = nameWithoutExt
-      .replace(/[^a-zA-Z0-9\s]/g, ' ')  // Replace non-alphanumeric (except spaces) with spaces
-      .trim()                            // Remove leading/trailing spaces
-      .replace(/\s+/g, ' ')              // Replace multiple spaces with single space
-      .toLowerCase()                     // Convert to lowercase
-      .replace(/\s/g, '-')               // Replace spaces with dashes
+      .replace(/[^a-zA-Z0-9\s\/]/g, ' ')  // Replace non-alphanumeric (except spaces and /) with spaces
+      .trim()                             // Remove leading/trailing spaces
+      .replace(/\s+/g, ' ')               // Replace multiple spaces with single space
+      .toLowerCase()                      // Convert to lowercase
+      .replace(/\s/g, '-')                // Replace spaces with dashes
     
     // Handle the extension
     const safeExt = ext.toLowerCase().replace(/[^a-z0-9.]/g, '')
     
-    return safeName + safeExt
-  }
-
-  getKey(fileName) {
-    const safeName = this.s3SafeFileName(fileName)
-    return `audiobooks/${safeName}`
+    // remove leading slash
+    return safeName.replace(/^\//, '') + safeExt
   }
 
   /**
@@ -137,7 +133,7 @@ class StorageManager {
       throw new Error('S3 storage not initialized')
     }
 
-    const key = this.getKey(fileName)
+    const key = this.s3SafeFileName(fileName)
     
     try {
       const { Upload } = require('@aws-sdk/lib-storage')
@@ -186,7 +182,7 @@ class StorageManager {
       return null;
     }
 
-    const key = this.getKey(fileName)
+    const key = this.s3SafeFileName(fileName)
 
     try {
       // First check if the object exists
@@ -231,7 +227,7 @@ class StorageManager {
       return false
     }
 
-    const key = this.getKey(itemId, filename)
+    const key = this.s3SafeFileName(itemId, filename)
     
     try {
       const { HeadObjectCommand } = require('@aws-sdk/client-s3')
