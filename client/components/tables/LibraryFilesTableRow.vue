@@ -115,7 +115,9 @@ export default {
       this.savingsToCloud = true
 
       try {
-        const response = await this.$axios.$get(`/api/items/${this.libraryItemId}/file/${this.file.ino}/saveToCloud`)
+        const response = await this.$axios.$get(`/api/items/${this.libraryItemId}/file/${this.file.ino}/saveToCloud`, {
+          timeout: 300000
+        })
 
         if (response.success) {
           this.$toast.success(`Successfully saved "${response.fileName}" to cloud storage`)

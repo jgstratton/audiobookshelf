@@ -144,8 +144,7 @@ class StorageManager {
         const command = new PutObjectCommand({
           Bucket: this.bucket,
           Key: key,
-          Body: data,
-          ContentType: 'application/zip'
+          Body: data
         })
         await this.s3Client.send(command)
       } else {
@@ -155,8 +154,7 @@ class StorageManager {
           params: {
             Bucket: this.bucket,
             Key: key,
-            Body: data,
-            ContentType: 'application/zip'
+            Body: data
           }
         })
         await upload.done()
